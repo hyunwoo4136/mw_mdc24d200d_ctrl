@@ -5,6 +5,8 @@
 #include <std_msgs/String.h>
 #include <std_msgs/Empty.h>
 
+
+///////////////////////////////////////////////////////////////////////////	var. declaration
 serial::Serial ser;						// serial object
 
 bool laser_flag=false;						// laser flag
@@ -22,6 +24,7 @@ char cmd_r[5];
 int n_digit=0;							// number digit, sign
 int sign=0;
 
+///////////////////////////////////////////////////////////////////////////	parameters
 char mot1_max_vel[]="xv1=6000\r\n";				// setup commands
 char mot2_max_vel[]="xv2=6000\r\n";
 char mot1_max_acc[]="ac1=60000\r\n";
@@ -49,7 +52,56 @@ char mot2_vel[]="v2\r\n";
 char mot_stop_cmd[]="mvc=0,0\r\n";				// motor velocity command
 char mot_vel_cmd[]="mvc=00000,00000\r\n";			// motor velocity command
 
-void receive_data()						// serial data receive func.
+
+///////////////////////////////////////////////////////////////////////////	sub, pub class
+class sub_pub						
+{
+private:
+	ros::NodeHandle nh;
+	ros::Subscriber flag_sub;
+	ros::Subscriber laser_sub;
+    ros::Subscriber vel_l_sub;
+    ros::Subscriber vel_r_sub;
+
+public:
+	sub_pub()									// subscriber, publisher declaration
+	{
+		flag_sub=nh.subscribe("ctrl_flag", 1000, &sub_pub::ctrl_flag_callback, this);
+		laser_sub=nh.subscribe("laser_flag", 1000, &sub_pub::laser_flag_callback, this);
+		vel_l_sub=nh.subscribe("vel_l", 1000, &sub_pub::vel_l_callback, this);
+		vel_r_sub=nh.subscribe("vel_r", 1000, &sub_pub::vel_r_callback, this);
+	}
+	
+	void ctrl_flag_callback(const std_msgs::Bool::ConstPtr& msg) // subscriber call back func.
+	{
+		vel_l=0;
+		vel_r=0;
+	}
+	
+	void laser_flag_callback(const std_msgs::Bool::ConstPtr& msg) // subscriber call back func.
+	{
+		if(msg->data==true)
+		{
+			laser_flag=!laser_flag;
+		}
+	}
+	
+	void vel_l_callback(const std_msgs::Float32::ConstPtr& msg)	// subscriber call back func.
+	{
+		vel_l=msg->data;
+		ROS_INFO("subscribed left velocity topic");
+	}
+
+	void vel_r_callback(const std_msgs::Float32::ConstPtr& msg)	// subscriber call back func.
+	{
+		vel_r=msg->data;
+		ROS_INFO("subscribed right velocity topic");
+	}
+};
+
+
+///////////////////////////////////////////////////////////////////////////	serial receive func.
+void receive_data()
 {
 	while(!ser.available());
 	std_msgs::String result;
@@ -57,55 +109,59 @@ void receive_data()						// serial data receive func.
 	ROS_INFO_STREAM("Read: "<<result.data);
 }
 
-void setup_driver()						// motor driver setup func.
+
+///////////////////////////////////////////////////////////////////////////	driver setup func.
+void setup_driver()
 {	
 	ROS_INFO_STREAM("setting motor driver");
 	
 	ser.write(mot1_max_vel);
 	receive_data();					
-    	ser.write(mot2_max_vel);
-    	receive_data();
-    	ser.write(mot1_max_acc);
+	ser.write(mot2_max_vel);
+	receive_data();
+	ser.write(mot1_max_acc);
 	receive_data();					
-    	ser.write(mot2_max_acc);
-    	receive_data();
-    	ser.write(mot1_max_dcc);
+	ser.write(mot2_max_acc);
+	receive_data();
+	ser.write(mot1_max_dcc);
 	receive_data();					
-    	ser.write(mot2_max_dcc);
-    	receive_data();
-    	ser.write(mot1_max_vol);
-    	receive_data();
-    	ser.write(mot2_max_vol);
-    	receive_data();
-    	ser.write(mot1_enc_pulse);
-    	receive_data();
-      	ser.write(mot2_enc_pulse);
-      	receive_data();
-      	ser.write(mot1_vp_gain);
-      	receive_data();
-      	ser.write(mot2_vp_gain);
-      	receive_data();
-    	ser.write(mot1_vi_gain);
-    	receive_data();
-    	ser.write(mot2_vi_gain);
-    	receive_data();
-    	ser.write(mot1_cp_gain);
-      	receive_data();
-      	ser.write(mot2_cp_gain);
-      	receive_data();
-    	ser.write(mot1_ci_gain);
-    	receive_data();
-    	ser.write(mot2_ci_gain);
-    	receive_data();
-    	ser.write(sig_out_en);
-    	receive_data();
-    	ser.write(sig_out_off);
-    	receive_data();
-    	
-    	ROS_INFO_STREAM("settings done");
+	ser.write(mot2_max_dcc);
+	receive_data();
+	ser.write(mot1_max_vol);
+	receive_data();
+	ser.write(mot2_max_vol);
+	receive_data();
+	ser.write(mot1_enc_pulse);
+	receive_data();
+  	ser.write(mot2_enc_pulse);
+  	receive_data();
+  	ser.write(mot1_vp_gain);
+  	receive_data();
+  	ser.write(mot2_vp_gain);
+  	receive_data();
+	ser.write(mot1_vi_gain);
+	receive_data();
+	ser.write(mot2_vi_gain);
+	receive_data();
+	ser.write(mot1_cp_gain);
+  	receive_data();
+  	ser.write(mot2_cp_gain);
+  	receive_data();
+	ser.write(mot1_ci_gain);
+	receive_data();
+	ser.write(mot2_ci_gain);
+	receive_data();
+	ser.write(sig_out_en);
+	receive_data();
+	ser.write(sig_out_off);
+	receive_data();
+	
+	ROS_INFO_STREAM("settings done");
 }
 
-char *itoa(char *str, int num)				// int to character func.
+
+///////////////////////////////////////////////////////////////////////////	int to char func.
+char *itoa(char *str, int num)
 {
 	char *rev_buf;						// reversed character buffer
 	char buf[5];
@@ -148,7 +204,9 @@ char *itoa(char *str, int num)				// int to character func.
 	return str;
 }
 
-void transmit_vel(float v1, float v2)				// velocity command transmit func.
+
+///////////////////////////////////////////////////////////////////////////	serial transmit func.
+void transmit_vel(float v1, float v2)
 {	
 	int v_l=(int)v1;					// convert float to int
 	int v_r=(int)v2;
@@ -198,88 +256,48 @@ void transmit_vel(float v1, float v2)				// velocity command transmit func.
     	receive_data();
 }
 
-void vel_l_callback(const std_msgs::Float32::ConstPtr& msg)	// subscriber call back func.
-{
-	vel_l=msg->data;
-	ROS_INFO("subscribed left velocity topic");
-}
 
-void vel_r_callback(const std_msgs::Float32::ConstPtr& msg)	// subscriber call back func.
+///////////////////////////////////////////////////////////////////////////	main function
+int main (int argc, char** argv)
 {
-	vel_r=msg->data;
-	ROS_INFO("subscribed right velocity topic");
-}
+	ros::init(argc, argv, "object_following");
+	sub_pub sp;									// declare sub, pub class
 
-void ctrl_flag_callback(const std_msgs::Bool::ConstPtr& msg) // subscriber call back func.
-{
-	vel_l=0;
-	vel_r=0;
+	ros::Rate loop_rate(10);
 	
-	ser.write(mot_stop_cmd);
-	receive_data();
-}
-
-void laser_flag_callback(const std_msgs::Bool::ConstPtr& msg) // subscriber call back func.
-{
-	if(msg->data==true)
+	try											// setup usb serial
 	{
-		laser_flag=!laser_flag;
+    	ser.setPort("/dev/ttyUSB0");
+    	ser.setBaudrate(115200);
+    	serial::Timeout to = serial::Timeout::simpleTimeout(1000);
+    	ser.setTimeout(to);
+    	ser.open();
 	}
-	
-	if(laser_flag==false)
+	catch (serial::IOException& e)
 	{
-		ser.write(sig_out_off);
-		receive_data();
+    	ROS_ERROR_STREAM("Unable to open port ");
+    	return -1;
+	}
+
+	if(ser.isOpen())
+	{
+    	ROS_INFO_STREAM("Serial Port initialized");
 	}
 	else
 	{
-		ser.write(sig_out_on);
-		receive_data();
+    	return -1;
 	}
-}
-
-int main (int argc, char** argv)
-{
-    	ros::init(argc, argv, "mw_mdc24d_ctrl");
-    	ros::NodeHandle nh;
-
-	ros::Subscriber flag_sub=nh.subscribe("ctrl_flag", 1000, ctrl_flag_callback);
-	ros::Subscriber laser_sub=nh.subscribe("laser_flag", 1000, laser_flag_callback);
-    	ros::Subscriber vel_l_sub=nh.subscribe("vel_l", 1000, vel_l_callback);
-    	ros::Subscriber vel_r_sub=nh.subscribe("vel_r", 1000, vel_r_callback);
-
-    	try								// setup usb serial
-    	{
-        	ser.setPort("/dev/ttyUSB0");
-        	ser.setBaudrate(115200);
-        	serial::Timeout to = serial::Timeout::simpleTimeout(1000);
-        	ser.setTimeout(to);
-        	ser.open();
-    	}
-    	catch (serial::IOException& e)
-    	{
-        	ROS_ERROR_STREAM("Unable to open port ");
-        	return -1;
-    	}
-
-    	if(ser.isOpen())
-    	{
-        	ROS_INFO_STREAM("Serial Port initialized");
-    	}
-    	else
-    	{
-        	return -1;
-    	}
-    	
-    	setup_driver();						// setup motor driver
-    	
-    	ros::Rate loop_rate(5);
-    	
-    	while(ros::ok())
-    	{
-    		transmit_vel(int(vel_l), int(vel_r));
+	
+	setup_driver();								// setup motor driver
+	
+	while(ros::ok())
+	{
+		transmit_vel(int(vel_l), int(vel_r));
     		
-        	ros::spinOnce();        
-        	loop_rate.sleep();
-    	}
+    	ros::spinOnce();        
+    	loop_rate.sleep();
+	}
+	
+	return 0;
 }
+
