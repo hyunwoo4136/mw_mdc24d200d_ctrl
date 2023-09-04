@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>mw_mdc24d_ctrl</name>
+  <name>mw_mdc24d200d_ctrl</name>
   <version>0.0.0</version>
-  <description>mw_mdc24d_ctrl package</description>
+  <description>mw_mdc24d200d_ctrl package</description>
 
   <author email="hyunwoo745@naver.com">Hyunwoo Lee</author>
 

@@ -7,25 +7,26 @@
 
 
 ///////////////////////////////////////////////////////////////////////////	var. declaration
-serial::Serial ser;						// serial object
+serial::Serial ser;									// serial object
 
-bool laser_flag=false;						// laser flag
+bool d_out=false;									// digital output value
+bool d_out_transmit_flag=false;						// digital output transmit flag
 
-float vel=3000.0;						// motor velocity
-float vel_l=0;							// velocity of each motors
+float vel_l=0;										// velocity of each motors
 float vel_r=0;
 
-char *cmd_vel;							// velocity commands
+char *cmd_vel;										// velocity commands
 char cmd[5];
 
 char cmd_l[5];
 char cmd_r[5];
 
-int n_digit=0;							// number digit, sign
+int n_digit=0;										// number digit, sign
 int sign=0;
 
+
 ///////////////////////////////////////////////////////////////////////////	parameters
-char mot1_max_vel[]="xv1=6000\r\n";				// setup commands
+char mot1_max_vel[]="xv1=6000\r\n";					// setup commands
 char mot2_max_vel[]="xv2=6000\r\n";
 char mot1_max_acc[]="ac1=60000\r\n";
 char mot2_max_acc[]="ac2=60000\r\n";
@@ -49,7 +50,7 @@ char sig_out_off[]="dov1=1\r\n";
 char mot1_vel[]="v1\r\n";
 char mot2_vel[]="v2\r\n";
 
-char mot_stop_cmd[]="mvc=0,0\r\n";				// motor velocity command
+char mot_stop_cmd[]="mvc=0,0\r\n";					// motor velocity command
 char mot_vel_cmd[]="mvc=00000,00000\r\n";			// motor velocity command
 
 
@@ -58,41 +59,31 @@ class sub_pub
 {
 private:
 	ros::NodeHandle nh;
-	ros::Subscriber flag_sub;
-	ros::Subscriber laser_sub;
+	ros::Subscriber d_out_sub;
     ros::Subscriber vel_l_sub;
     ros::Subscriber vel_r_sub;
 
 public:
-	sub_pub()									// subscriber, publisher declaration
+	sub_pub()										// subscriber, publisher declaration
 	{
-		flag_sub=nh.subscribe("ctrl_flag", 1000, &sub_pub::ctrl_flag_callback, this);
-		laser_sub=nh.subscribe("laser_flag", 1000, &sub_pub::laser_flag_callback, this);
+		d_out_sub=nh.subscribe("d_out", 1000, &sub_pub::d_out_callback, this);
 		vel_l_sub=nh.subscribe("vel_l", 1000, &sub_pub::vel_l_callback, this);
 		vel_r_sub=nh.subscribe("vel_r", 1000, &sub_pub::vel_r_callback, this);
 	}
 	
-	void ctrl_flag_callback(const std_msgs::Bool::ConstPtr& msg) // subscriber call back func.
+	void d_out_callback(const std_msgs::Bool::ConstPtr& msg)	// digital out call back func.
 	{
-		vel_l=0;
-		vel_r=0;
+		d_out_transmit_flag=true;
+		d_out=msg->data;
 	}
 	
-	void laser_flag_callback(const std_msgs::Bool::ConstPtr& msg) // subscriber call back func.
-	{
-		if(msg->data==true)
-		{
-			laser_flag=!laser_flag;
-		}
-	}
-	
-	void vel_l_callback(const std_msgs::Float32::ConstPtr& msg)	// subscriber call back func.
+	void vel_l_callback(const std_msgs::Float32::ConstPtr& msg)	// left vel. call back func.
 	{
 		vel_l=msg->data;
 		ROS_INFO("subscribed left velocity topic");
 	}
-
-	void vel_r_callback(const std_msgs::Float32::ConstPtr& msg)	// subscriber call back func.
+	
+	void vel_r_callback(const std_msgs::Float32::ConstPtr& msg)	// right vel. call back func.
 	{
 		vel_r=msg->data;
 		ROS_INFO("subscribed right velocity topic");
@@ -163,16 +154,16 @@ void setup_driver()
 ///////////////////////////////////////////////////////////////////////////	int to char func.
 char *itoa(char *str, int num)
 {
-	char *rev_buf;						// reversed character buffer
+	char *rev_buf;									// reversed character buffer
 	char buf[5];
 	
-	n_digit=0;						// initialize number digit
-	sign=0;						// sign
+	n_digit=0;										// initialize number digit
+	sign=0;											// sign
 	rev_buf=buf;
 	
 	if(num!=0)						
 	{
-		if(num<0)					// find number sign
+		if(num<0)									// find number sign
 		{
 			num=~num+1;
 			sign=1;
@@ -180,7 +171,7 @@ char *itoa(char *str, int num)
 		
 		for(n_digit=0; n_digit<5; n_digit++)		// generate reversed buffer
 		{
-			if(num<=0)				// find number digit
+			if(num<=0)								// find number digit
 			{
 				break;
 			}
@@ -194,7 +185,7 @@ char *itoa(char *str, int num)
 			str[i]=rev_buf[n_digit-i-1];
 		}
 	}
-	else							// return 0
+	else											// return 0
 	{
 		n_digit=1;
 		sign=0;
@@ -208,10 +199,10 @@ char *itoa(char *str, int num)
 ///////////////////////////////////////////////////////////////////////////	serial transmit func.
 void transmit_vel(float v1, float v2)
 {	
-	int v_l=(int)v1;					// convert float to int
+	int v_l=(int)v1;								// convert float to int
 	int v_r=(int)v2;
 	
-	for(int i=0; i<5; i++)					// initialize velocity array
+	for(int i=0; i<5; i++)							// initialize velocity array
 	{
 		cmd_l[i]='0';
 		cmd_r[i]='0';
@@ -220,7 +211,7 @@ void transmit_vel(float v1, float v2)
 	
 	cmd_vel=cmd;
 	
-	cmd_vel=itoa(cmd_vel, v_l);				// convert left int to char
+	cmd_vel=itoa(cmd_vel, v_l);						// convert left int to char
 	
 	for(int i=0; i<n_digit; i++)
 	{
@@ -232,7 +223,7 @@ void transmit_vel(float v1, float v2)
 		cmd_l[0]='-';
 	}
 	
-	cmd_vel=itoa(cmd_vel, v_r);				// convert right int to char
+	cmd_vel=itoa(cmd_vel, v_r);						// convert right int to char
 	
 	for(int i=0; i<n_digit; i++)
 	{
@@ -244,7 +235,7 @@ void transmit_vel(float v1, float v2)
 		cmd_r[0]='-';
 	}
 	
-	for(int i=0; i<5; i++)					// substitute the vel to cmd
+	for(int i=0; i<5; i++)							// substitute the vel to cmd
 	{
 		mot_vel_cmd[i+4]=cmd_l[i];
 		mot_vel_cmd[i+10]=cmd_r[i];
@@ -252,20 +243,20 @@ void transmit_vel(float v1, float v2)
 	
 	ROS_INFO("%s", mot_vel_cmd);
 	
-	ser.write(mot_vel_cmd);				// transmit command
-    	receive_data();
+	ser.write(mot_vel_cmd);							// transmit command
+    receive_data();
 }
 
 
 ///////////////////////////////////////////////////////////////////////////	main function
 int main (int argc, char** argv)
 {
-	ros::init(argc, argv, "object_following");
-	sub_pub sp;									// declare sub, pub class
+	ros::init(argc, argv, "mw_mdc24d200d_ctrl");
+	sub_pub sp;										// declare sub, pub class
 
 	ros::Rate loop_rate(10);
 	
-	try											// setup usb serial
+	try												// setup serial communication
 	{
     	ser.setPort("/dev/ttyUSB0");
     	ser.setBaudrate(115200);
@@ -288,10 +279,18 @@ int main (int argc, char** argv)
     	return -1;
 	}
 	
-	setup_driver();								// setup motor driver
+	setup_driver();									// setup motor driver
 	
 	while(ros::ok())
 	{
+		if(d_out_transmit_flag==true)				// digital output value transmit
+		{
+			(d_out) ? ser.write(sig_out_on) : ser.write(sig_out_off);
+			receive_data();
+			
+			d_out_transmit_flag=false;
+		}
+		
 		transmit_vel(int(vel_l), int(vel_r));
     		
     	ros::spinOnce();        
