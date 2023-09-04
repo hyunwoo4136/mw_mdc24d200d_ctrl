@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package>
+  <name>mw_mdc24d_ctrl</name>
+  <version>0.0.0</version>
+  <description>mw_mdc24d_ctrl package</description>
+
+  <author email="hyunwoo745@naver.com">Hyunwoo Lee</author>
+
+  <maintainer email="hyunwoo745@naver.com">Hyunwoo Lee</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>serial</build_depend>
+  <build_depend>std_msgs</build_depend>
+  
+  <run_depend>serial</run_depend>
+  <run_depend>std_msgs</run_depend>
+
+</package>
