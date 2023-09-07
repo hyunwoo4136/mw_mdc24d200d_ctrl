@@ -4,9 +4,12 @@
 #include <std_msgs/Float32.h>
 #include <std_msgs/String.h>
 #include <std_msgs/Empty.h>
+#include <geometry_msgs/Twist.h>
 
 
 ///////////////////////////////////////////////////////////////////////////	var. declaration
+#define PI 3.141592
+
 serial::Serial ser;									// serial object
 
 bool d_out=false;									// digital output value
@@ -53,6 +56,10 @@ char mot2_vel[]="v2\r\n";
 char mot_stop_cmd[]="mvc=0,0\r\n";					// motor velocity command
 char mot_vel_cmd[]="mvc=00000,00000\r\n";			// motor velocity command
 
+float tread=0.3;									// robot tread
+float radius=0.04;									// wheel radius
+float g_ratio=140;									// wheel motor gear ratio
+
 
 ///////////////////////////////////////////////////////////////////////////	sub, pub class
 class sub_pub						
@@ -62,13 +69,13 @@ private:
 	ros::Subscriber d_out_sub;
     ros::Subscriber vel_l_sub;
     ros::Subscriber vel_r_sub;
+    ros::Subscriber vel_sub;
 
 public:
 	sub_pub()										// subscriber, publisher declaration
 	{
 		d_out_sub=nh.subscribe("d_out", 1000, &sub_pub::d_out_callback, this);
-		vel_l_sub=nh.subscribe("vel_l", 1000, &sub_pub::vel_l_callback, this);
-		vel_r_sub=nh.subscribe("vel_r", 1000, &sub_pub::vel_r_callback, this);
+		vel_sub=nh.subscribe("cmd_vel", 1000, &sub_pub::vel_callback, this);
 	}
 	
 	void d_out_callback(const std_msgs::Bool::ConstPtr& msg)	// digital out call back func.
@@ -77,16 +84,13 @@ public:
 		d_out=msg->data;
 	}
 	
-	void vel_l_callback(const std_msgs::Float32::ConstPtr& msg)	// left vel. call back func.
+	void vel_callback(const geometry_msgs::Twist::ConstPtr& cmd)	// velocity call back func.
 	{
-		vel_l=msg->data;
-		ROS_INFO("subscribed left velocity topic");
-	}
-	
-	void vel_r_callback(const std_msgs::Float32::ConstPtr& msg)	// right vel. call back func.
-	{
-		vel_r=msg->data;
-		ROS_INFO("subscribed right velocity topic");
+		float lin_v=cmd->linear.x;
+		float ang_v=cmd->angular.z;
+		
+		vel_l=(lin_v-tread*0.5*ang_v)/PI/radius*30.0*g_ratio;
+		vel_r=(lin_v+tread*0.5*ang_v)/PI/radius*30.0*g_ratio;
 	}
 };
 
@@ -244,7 +248,7 @@ void transmit_vel(float v1, float v2)
 	ROS_INFO("%s", mot_vel_cmd);
 	
 	ser.write(mot_vel_cmd);							// transmit command
-    receive_data();
+	receive_data();
 }
 
 
