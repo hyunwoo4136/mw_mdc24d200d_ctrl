@@ -105,9 +105,6 @@ public:
 			vel_r=6000.0;
 		else if(vel_r<-max_vel)
 			vel_r=-6000.0;
-			
-			ROS_INFO("left: %f", vel_l);
-			ROS_INFO("right: %f", vel_r);
 	}
 };
 
@@ -275,7 +272,7 @@ int main (int argc, char** argv)
 	sub_pub sp;										// declare sub, pub class
 
 	ros::Rate loop_rate(10);
-	/*
+	
 	try												// setup serial communication
 	{
 		ser.setPort("/dev/ttyUSB0");
@@ -300,9 +297,9 @@ int main (int argc, char** argv)
 	}
 	
 	setup_driver();									// setup motor driver
-	*/
+	
 	while(ros::ok())
-	{/*
+	{
 		if(d_out_transmit_flag==true)				// digital output value transmit
 		{
 			(d_out) ? ser.write(sig_out_on) : ser.write(sig_out_off);
@@ -312,7 +309,7 @@ int main (int argc, char** argv)
 		}
 		
 		transmit_vel((int)vel_l, (int)vel_r);					// velocity command transmit
-		*/
+		
 		ros::spinOnce();        
 		loop_rate.sleep();
 	}
