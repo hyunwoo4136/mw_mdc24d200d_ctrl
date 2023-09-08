@@ -1,0 +1,5 @@
+tread: 0.149                              # robot tread [m]
+radius: 0.02055                           # wheel radius [m]
+g_ratio: 170.0                            # wheel motor gear ratio
+
+max_vel: 6000.0                           # max velocity

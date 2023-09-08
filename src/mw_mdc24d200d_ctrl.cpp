@@ -27,6 +27,12 @@ int sign=0;
 
 
 ///////////////////////////////////////////////////////////////////////////	parameters
+float tread;										// robot tread
+float radius;										// wheel radius
+float g_ratio;										// wheel motor gear ratio
+
+float max_vel;										// max velocity
+
 char mot1_max_vel[]="xv1=6000\r\n";					// setup commands
 char mot2_max_vel[]="xv2=6000\r\n";
 char mot1_max_acc[]="ac1=60000\r\n";
@@ -51,14 +57,7 @@ char sig_out_off[]="dov1=1\r\n";
 char mot1_vel[]="v1\r\n";
 char mot2_vel[]="v2\r\n";
 
-char mot_stop_cmd[]="mvc=0,0\r\n";					// motor velocity command
 char mot_vel_cmd[]="mvc=00000,00000\r\n";			// motor velocity command
-
-float tread=0.149;									// robot tread
-float radius=0.0411*0.5;							// wheel radius
-float g_ratio=170;									// wheel motor gear ratio
-
-float max_vel=6000.0;								// max velocity
 
 
 ///////////////////////////////////////////////////////////////////////////	sub, pub class
@@ -67,15 +66,20 @@ class sub_pub
 private:
 	ros::NodeHandle nh;
 	ros::Subscriber d_out_sub;
-    ros::Subscriber vel_l_sub;
-    ros::Subscriber vel_r_sub;
-    ros::Subscriber vel_sub;
+	ros::Subscriber vel_l_sub;
+	ros::Subscriber vel_r_sub;
+	ros::Subscriber vel_sub;
 
 public:
-	sub_pub()										// subscriber, publisher declaration
+	sub_pub()										// class constructor
 	{
 		d_out_sub=nh.subscribe("d_out", 1000, &sub_pub::d_out_callback, this);
 		vel_sub=nh.subscribe("cmd_vel", 1000, &sub_pub::vel_callback, this);
+		
+		nh.getParam("/mw_mdc24d200d_ctrl/tread", tread);	// load parameters
+		nh.getParam("/mw_mdc24d200d_ctrl/radius", radius);
+		nh.getParam("/mw_mdc24d200d_ctrl/g_ratio", g_ratio);
+		nh.getParam("/mw_mdc24d200d_ctrl/max_vel", max_vel);
 	}
 	
 	void d_out_callback(const std_msgs::Bool::ConstPtr& msg)	// digital out call back func.
@@ -101,6 +105,9 @@ public:
 			vel_r=6000.0;
 		else if(vel_r<-max_vel)
 			vel_r=-6000.0;
+			
+			ROS_INFO("left: %f", vel_l);
+			ROS_INFO("right: %f", vel_r);
 	}
 };
 
@@ -119,7 +126,7 @@ void receive_data()
 
 ///////////////////////////////////////////////////////////////////////////	driver setup func.
 void setup_driver()
-{	
+{
 	ROS_INFO_STREAM("setting motor driver");
 	
 	ser.write(mot1_max_vel);
@@ -140,20 +147,20 @@ void setup_driver()
 	receive_data();
 	ser.write(mot1_enc_pulse);
 	receive_data();
-  	ser.write(mot2_enc_pulse);
-  	receive_data();
-  	ser.write(mot1_vp_gain);
-  	receive_data();
-  	ser.write(mot2_vp_gain);
-  	receive_data();
+	ser.write(mot2_enc_pulse);
+	receive_data();
+	ser.write(mot1_vp_gain);
+	receive_data();
+	ser.write(mot2_vp_gain);
+	receive_data();
 	ser.write(mot1_vi_gain);
 	receive_data();
 	ser.write(mot2_vi_gain);
 	receive_data();
 	ser.write(mot1_cp_gain);
-  	receive_data();
-  	ser.write(mot2_cp_gain);
-  	receive_data();
+	receive_data();
+	ser.write(mot2_cp_gain);
+	receive_data();
 	ser.write(mot1_ci_gain);
 	receive_data();
 	ser.write(mot2_ci_gain);
@@ -268,34 +275,34 @@ int main (int argc, char** argv)
 	sub_pub sp;										// declare sub, pub class
 
 	ros::Rate loop_rate(10);
-	
+	/*
 	try												// setup serial communication
 	{
-    	ser.setPort("/dev/ttyUSB0");
-    	ser.setBaudrate(115200);
-    	serial::Timeout to = serial::Timeout::simpleTimeout(1000);
-    	ser.setTimeout(to);
-    	ser.open();
+		ser.setPort("/dev/ttyUSB0");
+		ser.setBaudrate(115200);
+		serial::Timeout to = serial::Timeout::simpleTimeout(1000);
+		ser.setTimeout(to);
+		ser.open();
 	}
 	catch (serial::IOException& e)
 	{
-    	ROS_ERROR_STREAM("Unable to open port ");
-    	return -1;
+		ROS_ERROR_STREAM("Unable to open port ");
+		return -1;
 	}
 
 	if(ser.isOpen())
 	{
-    	ROS_INFO_STREAM("Serial Port initialized");
+		ROS_INFO_STREAM("Serial Port initialized");
 	}
 	else
 	{
-    	return -1;
+		return -1;
 	}
 	
 	setup_driver();									// setup motor driver
-	
+	*/
 	while(ros::ok())
-	{
+	{/*
 		if(d_out_transmit_flag==true)				// digital output value transmit
 		{
 			(d_out) ? ser.write(sig_out_on) : ser.write(sig_out_off);
@@ -305,9 +312,9 @@ int main (int argc, char** argv)
 		}
 		
 		transmit_vel((int)vel_l, (int)vel_r);					// velocity command transmit
-    		
-    	ros::spinOnce();        
-    	loop_rate.sleep();
+		*/
+		ros::spinOnce();        
+		loop_rate.sleep();
 	}
 	
 	return 0;

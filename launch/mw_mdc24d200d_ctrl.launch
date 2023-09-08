@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<launch>
+  <node name="mw_mdc24d200d_ctrl" pkg="mw_mdc24d200d_ctrl" type="mw_mdc24d200d_ctrl" output="screen" >
+    <rosparam command="load" file="$(find mw_mdc24d200d_ctrl)/config/parameters.yaml" />
+  </node>
+</launch>
