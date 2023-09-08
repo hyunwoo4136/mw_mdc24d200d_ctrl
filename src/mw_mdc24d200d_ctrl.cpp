@@ -1,9 +1,7 @@
 #include <ros/ros.h>
 #include <serial/serial.h>
 #include <std_msgs/Bool.h>
-#include <std_msgs/Float32.h>
 #include <std_msgs/String.h>
-#include <std_msgs/Empty.h>
 #include <geometry_msgs/Twist.h>
 
 
@@ -15,8 +13,8 @@ serial::Serial ser;									// serial object
 bool d_out=false;									// digital output value
 bool d_out_transmit_flag=false;						// digital output transmit flag
 
-float vel_l=0;										// velocity of each motors
-float vel_r=0;
+float vel_l=0.0;									// velocity of each motors
+float vel_r=0.0;
 
 char *cmd_vel;										// velocity commands
 char cmd[5];
@@ -56,9 +54,11 @@ char mot2_vel[]="v2\r\n";
 char mot_stop_cmd[]="mvc=0,0\r\n";					// motor velocity command
 char mot_vel_cmd[]="mvc=00000,00000\r\n";			// motor velocity command
 
-float tread=0.3;									// robot tread
-float radius=0.04;									// wheel radius
-float g_ratio=140;									// wheel motor gear ratio
+float tread=0.149;									// robot tread
+float radius=0.0411*0.5;							// wheel radius
+float g_ratio=170;									// wheel motor gear ratio
+
+float max_vel=6000.0;								// max velocity
 
 
 ///////////////////////////////////////////////////////////////////////////	sub, pub class
@@ -91,6 +91,16 @@ public:
 		
 		vel_l=(lin_v-tread*0.5*ang_v)/PI/radius*30.0*g_ratio;
 		vel_r=(lin_v+tread*0.5*ang_v)/PI/radius*30.0*g_ratio;
+		
+		if(vel_l>max_vel)							// velocity limitation
+			vel_l=6000.0;
+		else if(vel_l<-max_vel)
+			vel_l=-6000.0;
+		
+		if(vel_r>max_vel)
+			vel_r=6000.0;
+		else if(vel_r<-max_vel)
+			vel_r=-6000.0;
 	}
 };
 
@@ -98,9 +108,11 @@ public:
 ///////////////////////////////////////////////////////////////////////////	serial receive func.
 void receive_data()
 {
-	while(!ser.available());
 	std_msgs::String result;
-	result.data = ser.read(ser.available());
+
+	while(!ser.available());
+	
+	result.data=ser.read(ser.available());
 	ROS_INFO_STREAM("Read: "<<result.data);
 }
 
@@ -201,12 +213,9 @@ char *itoa(char *str, int num)
 
 
 ///////////////////////////////////////////////////////////////////////////	serial transmit func.
-void transmit_vel(float v1, float v2)
-{	
-	int v_l=(int)v1;								// convert float to int
-	int v_r=(int)v2;
-	
-	for(int i=0; i<5; i++)							// initialize velocity array
+void transmit_vel(int v_l, int v_r)
+{		
+	for(int i=0; i<5; i++)							// initialize velocity string
 	{
 		cmd_l[i]='0';
 		cmd_r[i]='0';
@@ -239,7 +248,7 @@ void transmit_vel(float v1, float v2)
 		cmd_r[0]='-';
 	}
 	
-	for(int i=0; i<5; i++)							// substitute the vel to cmd
+	for(int i=0; i<5; i++)							// substitute velocity string to cmd
 	{
 		mot_vel_cmd[i+4]=cmd_l[i];
 		mot_vel_cmd[i+10]=cmd_r[i];
@@ -295,7 +304,7 @@ int main (int argc, char** argv)
 			d_out_transmit_flag=false;
 		}
 		
-		transmit_vel(int(vel_l), int(vel_r));
+		transmit_vel((int)vel_l, (int)vel_r);					// velocity command transmit
     		
     	ros::spinOnce();        
     	loop_rate.sleep();
