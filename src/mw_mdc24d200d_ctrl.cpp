@@ -97,14 +97,14 @@ public:
 		vel_r=(lin_v+tread*0.5*ang_v)/PI/radius*30.0*g_ratio;
 		
 		if(vel_l>max_vel)							// velocity limitation
-			vel_l=6000.0;
+			vel_l=max_vel;
 		else if(vel_l<-max_vel)
-			vel_l=-6000.0;
+			vel_l=-1.0*max_vel;
 		
 		if(vel_r>max_vel)
-			vel_r=6000.0;
+			vel_r=max_vel;
 		else if(vel_r<-max_vel)
-			vel_r=-6000.0;
+			vel_r=-1.0*max_vel;
 	}
 };
 
@@ -308,7 +308,7 @@ int main (int argc, char** argv)
 			d_out_transmit_flag=false;
 		}
 		
-		transmit_vel((int)vel_l, (int)vel_r);					// velocity command transmit
+		transmit_vel((int)vel_l, (int)vel_r);		// velocity command transmit
 		
 		ros::spinOnce();        
 		loop_rate.sleep();
